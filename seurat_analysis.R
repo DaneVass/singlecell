@@ -120,8 +120,6 @@ runSeuratPipeline <- function(counts.dir, outdir = "./", norm = "sctransform",
   #----------------------------------------------
   # run PCA
   sample <- RunPCA(sample, npcs = 100)
-  p <- DimPlot(sample, reduction = "pca", group.by = 'Phase', label = T, label.size = 5)
-  ggsave(file.path(plot.dir,paste(samplename, "_PCA_no_cc_regression.pdf", sep = '')), width = 9, height = 7)
 
   # Run tSNE & UMAP
   sample <- RunUMAP(object = sample, verbose = T, seed.use = seed.use, dims = dims, reduction.name=paste("umap.1.",dims,".dim", sep=''))
