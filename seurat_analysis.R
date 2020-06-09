@@ -257,14 +257,14 @@ runSeuratPipeline <- function(counts.dir, outdir = "./", norm = "sctransform",
     NoLegend() +
     ggtitle(paste('UMAP -', samplename))
   p <- AugmentPlot(p, dpi = 300, width = 8, height = 6)
-  ggsave(file.path(plot.dir,paste(samplename, paste("UMAP_",tail(dims,1), sep=''), ".pdf", sep = '')), width = 9, height = 7)
+  ggsave(file.path(plot.dir,paste(samplename, paste("_UMAP_",tail(dims,1), sep=''), ".pdf", sep = '')), width = 9, height = 7)
   
   # t-SNE reduction on clusters - dims
   p <- DimPlot(object = sample, reduction = paste("tsne",tail(dims,1), sep='_'), pt.size = 0.1, label = T, label.size = 5) +
     NoLegend() +
     ggtitle(paste('t-SNE -', samplename))
   p <- AugmentPlot(p, dpi = 300, width = 8, height = 6)
-  ggsave(file.path(plot.dir,paste(samplename, paste("t-SNE_",tail(dims,1), sep=''), ".pdf", sep = '')), width = 9, height = 7)
+  ggsave(file.path(plot.dir,paste(samplename, paste("_t-SNE_",tail(dims,1), sep=''), ".pdf", sep = '')), width = 9, height = 7)
 
   
   message(paste("Finished", samplename, "analysis. Enjoy your data!"))
