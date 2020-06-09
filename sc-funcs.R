@@ -1,5 +1,34 @@
 # single-cell custom functions
 
+match.barcodes.to.cells <- function(all.cells, cells.w.barcode.df){
+    # matches cells in a single cell experiment to detected DNA barcodes.
+    # all cells is a list of all cells in the experiment
+    # cells.w.barcode.df is a dataframe with cell id and barcode id as columns
+    # dataframe returned will have all cells matched to a barcode
+    # if there is no barcode matchable to a cell "not.detected" is returned
+    # for cells that have multiple detected barcodes each barcode is returned separated by ';'
+    cell.barcode.annotation <- data.frame()
+    for (id in all.cells){
+        keep <- which(cells.w.barcode.df$Cell.10X.Barcode == id)
+        df <- cells.w.barcode.df[keep,]
+        unique.barcodes <- length(unique(df$referenceID))
+        if (unique.barcodes == 0){
+            df.2 <- data.frame(cell.id = id, barcode = "not.detected")
+            cell.barcode.annotation <- rbind(df.2, cell.barcode.annotation)
+        }
+        if (unique.barcodes == 1){
+            df.2 <- data.frame(cell.id = id, barcode = df[1,2])
+            cell.barcode.annotation <- rbind(df.2, cell.barcode.annotation)
+        }
+        if (unique.barcodes > 1){
+            barcodes <- paste(unique(df$referenceID), collapse = ";")
+            df.2 <- data.frame(cell.id = id, barcode = barcodes)
+            cell.barcode.annotation <- rbind(df.2, cell.barcode.annotation)
+        }
+    }
+    return(cell.barcode.annotation)
+}
+
 plotBarcodesPerCell <- function(obj, samplename = "Seurat.obj"){
   meta.data <- obj@meta.data
   counts <- c()
