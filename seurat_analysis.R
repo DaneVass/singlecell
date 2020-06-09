@@ -39,7 +39,7 @@ runSeuratPipeline <- function(counts.dir, outdir = "./", norm = "sctransform",
   message(paste("Variables to regress during normalisation:", toString(regressVars)))
   message(paste("PCA dimensions to use:", toString(dims)))
   message(paste("Clustering resolutions to use:", toString(resolution)))
-  message(paste("Metadata:", meta))
+  #message(paste("Metadata:", meta))
   message(paste("Random seed:", seed.use))
   
   
