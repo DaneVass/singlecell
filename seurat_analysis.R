@@ -169,7 +169,7 @@ runSeuratPipeline <- function(counts.dir, outdir = "./", norm = "sctransform",
   sample$CC.Difference <- sample$S.Score - sample$G2M.Score
 
   # run PCA on cell cycle components
-  sample <- RunPCA(sample, features = cellcycleGenes)
+  sample <- RunPCA(sample, features = unlist(cellcycleGenes))
   p <- DimPlot(sample, reduction = "pca", group.by = 'Phase', label = T, label.size = 5)
   ggsave(file.path(plot.dir,paste(samplename, "_PCA_cell_cycle_anno.pdf", sep = '')), width = 9, height = 7)
 
