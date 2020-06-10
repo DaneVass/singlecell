@@ -168,8 +168,8 @@ sample <- AddMetaData(object = sample, metadata = percent.mito, col.name = "perc
 
 # plot QC metrics
 message("Plotting QC metrics - Pre-filter")
-#VlnPlot(object = sample, features = c("nFeature_RNA", "nCount_RNA", "percent.mito"), ncol = 3, pt.size = 0.01, log = T)
-#ggsave(file.path(qc.dir,paste(samplename, "_10X_basic_metrics_pre-filter.pdf", sep = '')), width = 9, height = 7)
+VlnPlot(object = sample, features = c("nFeature_RNA", "nCount_RNA", "percent.mito"), ncol = 3, pt.size = 0.01, log = T)
+ggsave(file.path(qc.dir,paste(samplename, "_10X_basic_metrics_pre-filter.pdf", sep = '')), width = 9, height = 7)
 
 # subset based on mito count and feature cutoffs
 message("Filtering low quality cells")
@@ -273,6 +273,10 @@ if (species == "mouse"){
   }
   s.genes <- convertHumanGeneList(s.genes)
   g2m.genes <- convertHumanGeneList(g2m.genes)
+  message("mouse cell cycle genes to use: S Phase")
+  print(s.genes)
+  message("mouse cell cycle genes to use: G2M Phase")
+  print(g2m.genes)
 }
 
 sample <- CellCycleScoring(sample, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE, search = F)
@@ -350,7 +354,7 @@ saveRDS(sample, file = file.path(Seurat.obj.dir, paste(samplename, "_cc_regresse
 message("performing final plots on normalised dataset")
 
 # PCA plot reduction on clusters
-p <- DimPlot(object = sample, reduction = "pca", pt.size = 0.1, label = T, label.size = 5, dims = c(head(dims,1),tail(dims,1))) +
+p <- DimPlot(object = sample, reduction = "pca", pt.size = 0.1, label = T, label.size = 5, dims = c(1,2)) +
   NoLegend() +
   ggtitle(paste('PCA -', samplename))
 p <- AugmentPlot(p, dpi = 300, width = 8, height = 6)

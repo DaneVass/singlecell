@@ -1,9 +1,9 @@
 #!/bin/bash
 
-Rscript seurat_analysis_shell.R -i ~/Dropbox/PostDoc_PeterMac/Projects/Barcoding_project/pbmc_1k/filtered_data \
+Rscript seurat_analysis_shell.R -i ~/Dropbox/PostDoc_PeterMac/Projects/Barcoding_project/mouse_neuron_1k_v3_filtered/filtered_data \
     -o ./test \
     -n 'pbmc-test' \
-    -s 'human' \
+    -s 'mouse' \
     --project 'pipeline-test' \
     -m 10 \
     -d 50 \
