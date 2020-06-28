@@ -1,5 +1,21 @@
 # single-cell custom functions
 
+plotElbow <- function(obj, outdir = NULL, samplename = "sample"){
+  require(PCAtools)
+  require(Seurat)
+  percent.var <- Stdev(obj)
+  elbow.dim <- PCAtools::findElbowPoint(percent.var)
+  p <- Seurat::ElbowPlot(obj, ndims = 50) +
+    geom_vline(aes(xintercept = elbow.dim), color = "red") +
+    labs(title = paste("Elbow plot -", samplename), subtitle = paste("Predicted elbow PC =", elbow.dim))
+
+  if(is.null(outdir)){
+    print(p)
+  } else {
+    ggsave(file.path(outdir,paste(prefix,".pdf", sep = '')), width = 8, height = 6)
+  }
+}
+
 match.barcodes.to.cells <- function(all.cells, cells.w.barcode.df){
     # matches cells in a single cell experiment to detected DNA barcodes.
     # all cells is a list of all cells in the experiment
@@ -120,7 +136,7 @@ findDoubletsByBarcode.2 <- function(obj){
 }
 
 # Enids method - way better than mine
-findDoubletsByBarcode <- function(obj){
+findDoubletsByBarcode <- function(obj, threshold = 2){
   doublets.by.barcode <- c()
 
   # assert barcodes are present in object
@@ -143,9 +159,16 @@ findDoubletsByBarcode <- function(obj){
 
   #combination of barcodes that only appear once
   sortbc <- as.data.frame(sortbc)
-  doubletbc <- sortbc[which(!(duplicated(sortbc)|duplicated(sortbc, fromLast=TRUE))),,drop=F]
+  doubletbc <- sortbc[which(!(duplicated(sortbc) | duplicated(sortbc, fromLast=TRUE))),,drop=F]
 
-  return(rownames(doubletbc))
+  # find barcodes that
+
+  #insert metadata into seruat obj
+  obj$doubletBarcode <- ifelse(rownames(obj@meta.data) %in% rownames(doubletbc), yes = "doublet", no = "singlet")
+  unknown <- which(obj$barcode == "not.detected")
+  obj$doubletBarcode[unknown] <- "unknown"
+
+  return(obj)
 }
 
 
@@ -205,11 +228,11 @@ runClusterProfiler <- function(dge, lfc.threshold = 0.2, padj.threshold = 0.1, O
 
   if (!is.null(outdir)){
     plot.dir <- file.path(outdir)
-    pdf(file.path(plot.dir,paste(sample,"clusterProfiler_output.pdf", sep = '')), useDingbats = F)
-    barplot(ego.up, showCategory=15) + ggtitle(paste("Upregulated", category, "GO terms in", sample))
-    barplot(ego.dn, showCategory=15) + ggtitle(paste("Downregulated", category, "GO terms in", sample))
-    clusterProfiler::emapplot(ego.up, showCategory=15) + ggtitle(paste("Upregulated", category, "GO terms in", sample))
-    clusterProfiler::emapplot(ego.dn, showCategory=15)+ ggtitle(paste("Downregulated", category, "GO terms in", sample))
+    pdf(file.path(plot.dir,paste(sample,"_clusterProfiler_output.pdf", sep = '')), useDingbats = F)
+    print(barplot(ego.up, showCategory=15) + ggtitle(paste("Upregulated", category, "GO terms in", sample)))
+    print(barplot(ego.dn, showCategory=15) + ggtitle(paste("Downregulated", category, "GO terms in", sample)))
+    print(clusterProfiler::emapplot(ego.up, showCategory=15) + ggtitle(paste("Upregulated", category, "GO terms in", sample)))
+    print(clusterProfiler::emapplot(ego.dn, showCategory=15)+ ggtitle(paste("Downregulated", category, "GO terms in", sample)))
     dev.off()
   }
 }

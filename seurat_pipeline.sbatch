@@ -13,18 +13,16 @@
 
 #### Load default modules ####
 module purge
-module load pmc-utils
-module load pmc-scripts
-module load R
+module load R/3.6.0
 
 #### Run parameters: ####
 Rscript seurat_analysis_shell.R -h
 
-Rscript seurat_analysis_shell.R -i ~/Dropbox/PostDoc_PeterMac/Projects/Barcoding_project/pbmc_1k/filtered_data \
-    -o ./test \
-    -n 'pbmc-test' \
-    -s 'human' \
-    --project 'pipeline-test' \
+Rscript seurat_analysis_shell.R -i $1 \
+    -o $2 \
+    -n $3 \
+    -s 'mouse' \
+    --project $4 \
     -m 10 \
     -d 50 \
     --regressvars "S.Score,G2M.Score,percent.mito" \
