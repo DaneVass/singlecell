@@ -1,5 +1,35 @@
 # single-cell custom functions
 
+
+
+# custom functions to output rasterised versions of plots for ease of use in illustrator. this was so incredibly frustrating
+# Using the ggpubr package. just print out the legend. Useful for AugmentPlot plots because the legends are lost
+getlegend <- function(plot){
+  require(ggpubr)
+  # Extract the legend. Returns a gtable
+  legend <- get_legend(plot)
+  # Convert to a ggplot and print
+  as_ggplot(legend)
+}
+
+# these functions are to be used under pdf statements
+plotAugmentDim <- function(obj, reduction = "umap", label = F, label.size = 6, group.by = NULL, title = NULL, dpi = 600, pt.size = 1, cells.highlight = NULL, cols.highlight = "red", sizes.highlight = 2, split.by = NULL){
+  p <- DimPlot(obj, reduction = reduction, label = label, label.size = label.size, group.by = group.by, pt.size = pt.size, cells.highlight = cells.highlight, cols.highlight = cols.highlight, sizes.highlight = sizes.highlight, split.by = split.by) +
+    ggtitle(title)
+  print(AugmentPlot(p, dpi = dpi))
+  print(getlegend(p))
+}
+
+plotAugmentFeature <- function(obj, reduction = "umap", features = NULL, label = F, label.size = 6, group.by = NULL, title = NULL, dpi = 600, pt.size = 1, order = T, ncol = NULL){
+  p <- FeaturePlot(obj, reduction = reduction, features = features, label = label, label.size = label.size, pt.size = pt.size, order = order, ncol = ncol) +
+    ggtitle(title)
+  print(AugmentPlot(p, dpi = dpi))
+  print(getlegend(p))
+}
+
+plotAugmentScatter <-
+
+
 plotElbow <- function(obj, outdir = NULL, samplename = "sample"){
   require(PCAtools)
   require(Seurat)
