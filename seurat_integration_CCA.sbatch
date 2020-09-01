@@ -2,7 +2,7 @@
 
 #SBATCH --nodes=1
 #SBATCH --ntasks=16
-#SBATCH --job-name="seurat_int"
+#SBATCH --job-name="seu_int_CCA"
 #SBATCH --time=2-00:00:00
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dane.vassiliadis@petermac.org

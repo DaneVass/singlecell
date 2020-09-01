@@ -20,8 +20,8 @@ suppressPackageStartupMessages(library("stringr"))
 ##------------------------ Get Options ------------------------##
 option_list <- list(
   # Basic options
-  make_option(c("-i", "--countsdir"), type="character", dest="countsdir", default = NULL,
-      help="REQUIRED: Path to the input directory containing counts matrix, barcodes, and features files", metavar="path"),
+  make_option("--object", type="character", dest="object", default = NULL, 
+      help="OPTIONAL: Path to the input Seurat RDS object.", metavar="path"),
   make_option(c("-o", "--outdir"), type="character", dest="outdir", default="./",
       help="Folder to output analysis files. Will be created if it does not exist"),
   make_option(c("-n", "--samplename"), type="character", dest="samplename", default="seurat_pipeline_default",
@@ -68,11 +68,11 @@ options <- parse_args(OptionParser(option_list=option_list))
 #-----------------------
 # Run pipeline
 #-----------------------
-if(is.null(options$countsdir)){
-  message("no input directory or object given. quitting")
+if(is.null(options$object)){
+  message("no input object given. quitting")
   quit(status = 1)
 } else {
-  counts.dir = options$countsdir
+  obj = options$object
 }
 outdir = options$outdir 
 norm = options$norm
@@ -95,7 +95,7 @@ message("-------------------------")
 message("Seurat scRNAseq pipeline")
 message("-------------------------")
 message(paste("Processing:", samplename))
-message(paste("Input directory:", counts.dir))
+message(paste("Input object:", obj))
 message(paste("Output directory:", outdir))
 message(paste("Species:", species))
 message(paste("Project:", project))
@@ -122,16 +122,8 @@ Seurat.obj.dir <- file.path(outdir, "seurat_obj")
 dir.create(Seurat.obj.dir, showWarnings = F)
 
 message("")
-if(!is.null(options$countsdir)){
-  message("Importing count data")
-  counts <- Read10X(counts.dir, strip.suffix = T)
-  sample <- CreateSeuratObject(counts = counts, min.cells = 3, min.features = 200, project = project, meta.data = meta)
-}
-
-# import Seurat object
-if(is.null(options$obj)){
-    sample <- readRDS(file = obj)
-}
+message("Importing count data")
+sample <- readRDS(file = obj)
 
 #-----------------------
 # Sample QC

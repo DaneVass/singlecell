@@ -11,7 +11,7 @@ while read line; do
     project=$(echo $line | cut -d ',' -f 4)
     
     # change seurat pipeline options in the sbatch
-    cmd="sbatch seurat_pipeline.sbatch $indir $outdir $samplename $project"
+    cmd="sbatch /home/dvassiliadis/my_scripts/singlecell/seurat_pipeline.sbatch $indir $outdir $samplename $project"
     echo $cmd
-    #$cmd
-done < $1 #input is csv file containing cellranger_output path,outdir,samplename,project
+    $cmd
+done < $1 #input is csv file containing cellranger_output path (or path to seurat object), outdir, samplename, project

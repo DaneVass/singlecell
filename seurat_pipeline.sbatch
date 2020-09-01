@@ -16,9 +16,9 @@ module purge
 module load R/3.6.0
 
 #### Run parameters: ####
-Rscript seurat_analysis_shell.R -h
 
-Rscript seurat_analysis_shell.R -i $1 \
+#Rscript seurat_analysis_shell.R -i $1 \
+Rscript /home/dvassiliadis/my_scripts/singlecell/seurat_analysis_shell_obj.R --object $1 \
     -o $2 \
     -n $3 \
     -s 'mouse' \

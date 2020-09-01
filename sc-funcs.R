@@ -1,6 +1,12 @@
 # single-cell custom functions
 
-
+# quickly rerun UMAP SNN and cluster commands for Seurat according to specified inputs
+quickUMAPrerun <- function(obj, dims = 1:50, red.name = "umap50", res = seq(0.1,2,0.1)){
+  obj <- RunUMAP(obj, dims = dims, verbose = T, reduction.name = red.name, seed.use = 10101)
+  obj <- FindNeighbors(obj, dims = dims, verbose = T, force.recalc = T)
+  obj <- FindClusters(obj, verbose = T, resolution = res)
+  return(obj)
+}
 
 # custom functions to output rasterised versions of plots for ease of use in illustrator. this was so incredibly frustrating
 # Using the ggpubr package. just print out the legend. Useful for AugmentPlot plots because the legends are lost
@@ -13,21 +19,22 @@ getlegend <- function(plot){
 }
 
 # these functions are to be used under pdf statements
-plotAugmentDim <- function(obj, reduction = "umap", label = F, label.size = 6, group.by = NULL, title = NULL, dpi = 600, pt.size = 1, cells.highlight = NULL, cols.highlight = "red", sizes.highlight = 2, split.by = NULL){
+plotAugmentDim <- function(obj, reduction = "umap", label = F, label.size = 6, group.by = NULL, title = NULL, dpi = 600, pt.size = 2, cells.highlight = NULL, cols.highlight = "red", sizes.highlight = 3.5, split.by = NULL){
   p <- DimPlot(obj, reduction = reduction, label = label, label.size = label.size, group.by = group.by, pt.size = pt.size, cells.highlight = cells.highlight, cols.highlight = cols.highlight, sizes.highlight = sizes.highlight, split.by = split.by) +
     ggtitle(title)
   print(AugmentPlot(p, dpi = dpi))
   print(getlegend(p))
 }
 
-plotAugmentFeature <- function(obj, reduction = "umap", features = NULL, label = F, label.size = 6, group.by = NULL, title = NULL, dpi = 600, pt.size = 1, order = T, ncol = NULL){
-  p <- FeaturePlot(obj, reduction = reduction, features = features, label = label, label.size = label.size, pt.size = pt.size, order = order, ncol = ncol) +
+plotAugmentFeature <- function(obj, reduction = "umap", features = NULL, label = F, label.size = 6, group.by = NULL, title = NULL, dpi = 600, pt.size = 2, order = T, ncol = NULL, cols = c("grey90", "blue"), max.cutoff = 30){
+  p <- FeaturePlot(obj, reduction = reduction, features = features, label = label, label.size = label.size,
+                   pt.size = pt.size, order = order, ncol = ncol, cols = cols, max.cutoff = max.cutoff) +
     ggtitle(title)
   print(AugmentPlot(p, dpi = dpi))
   print(getlegend(p))
 }
 
-plotAugmentScatter <-
+#plotAugmentScatter <-
 
 
 plotElbow <- function(obj, outdir = NULL, samplename = "sample"){
@@ -417,4 +424,111 @@ run_edgeR_LRT <- function(counts, group, plots = F){
                                   rownames = rownames(tt$table)))
   message("complete")
   return(results)
+}
+
+#counts <- MLL.T0@assays$RNA@counts
+#group <- factor(MLL.T0$winlose.2)
+#ref <- "loser"
+run_edgeRQLFDetRate <- function(counts, group, ref = NULL, plots = F) {
+  suppressPackageStartupMessages(require(edgeR))
+  message("Running edgeR QLF + DetRate")
+  session_info <- sessionInfo()
+  tryCatch({
+    timing <- system.time({
+      dge <- DGEList(counts, group = group)
+      levels(group)
+      # make ref the model intercept
+      if(!is.null(ref)){
+      dge$samples$group <- relevel(dge$samples$group, ref=ref)
+      levels(dge$samples$group)
+      }
+
+      message("Calculate normalisation factors")
+      dge <- calcNormFactors(dge)
+      message("Calculate cellular detection rate")
+      cdr <- scale(colMeans(dge$counts > 0))
+      design <- model.matrix(~ cdr + group)
+      message("Estimate dispersions")
+      dge <- estimateDisp(dge, design = design)
+      message("Fit QLF model")
+      fit <- glmQLFit(dge, design = design)
+      message("QLF tests")
+      message(print(ref, "vs", ))
+      qlf <- glmQLFTest(fit)
+      message("Export top tags")
+      tt <- topTags(qlf, n = Inf)
+    })
+
+    # plots
+    if(isTRUE(plots)){
+      plotBCV(dge)
+      plotQLDisp(fit)
+      hist(tt$table$PValue, 50)
+      hist(tt$table$FDR, 50)
+      limma::plotMDS(dge, col = as.numeric(as.factor(dge$group)), pch = 19)
+      plotSmear(qlf)
+    }
+
+    # export results
+    message("generate results")
+    results <- list(session_info = session_info,
+         timing = timing,
+         tt = tt,
+         df = data.frame(pval = tt$table$PValue,
+                         padj = tt$table$FDR,
+                         row.names = rownames(tt$table)))
+  }, error = function(e) {
+    "edgeRQLFDetRate results could not be calculated"
+    list(session_info = session_info)
+  })
+
+  message("complete")
+  return(results)
+}
+
+
+
+
+# plotCellsInClusters
+# function to plot number or percentage of cells in a group in each seurat cluster.
+# colors should match Seurat default coloring for clusters in DimPlot
+plotCellsInClusters <- function(obj, meta = 'barcode', group, plot.pct = T){
+  # get number of seurat clusters. NB plotting is 0 indexed so total - 1
+  clusters <- data.frame(seurat_clusters = as.factor(seq(0,max(as.numeric(obj$seurat_clusters)-1), 1)))
+
+  # get and count cells of interest
+  # filter func
+  # https://gist.github.com/steadyfish/ccb0896b1fa10f8c2528
+  filter_fn <- function(dat_in,filter_criteria){
+    dat_out = dat_in %>%
+      filter_(filter_crit)
+  }
+  filter_crit = lazyeval::interp(~ filter_var == group,filter_var = as.name(meta))
+  cells.dat = filter_fn(obj@meta.data,filter_crit)
+  cells = rownames(cells.dat)
+
+  group.clusters <- obj@meta.data %>%
+    rownames_to_column() %>%
+    filter(rowname %in% cells) %>%
+    group_by(seurat_clusters) %>%
+    tally()
+  dat <- left_join(clusters, group.clusters, by = "seurat_clusters")
+  dat[is.na(dat)] = 0
+  dat <- dat %>% mutate(pct = 100*(n/sum(dat$n)))
+
+  # plot data
+  if(isTRUE(plot.pct)){
+    p <- ggplot(dat, aes(x = seurat_clusters, y = pct, fill = seurat_clusters)) +
+      geom_histogram(stat = "identity") +
+      scale_fill_manual(values=scales::hue_pal()(nrow(clusters))) +
+      theme_bw() +
+      ggtitle(paste("Number of cells in clusters:", group))
+  } else {
+    p <- ggplot(dat, aes(x = seurat_clusters, y = n, fill = seurat_clusters)) +
+      geom_histogram(stat = "identity") +
+      scale_fill_manual(values=scales::hue_pal()(nrow(clusters))) +
+      theme_bw() +
+      ggtitle(paste("Number of cells in clusters:", group))
+  }
+  return(p)
 }

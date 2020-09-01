@@ -3,7 +3,7 @@
 # 8-6-20
 
 # Pipeline to automate basic 10X sample processing and visualisation using
-# Seurat
+# Seurat within R
 
 
 #-----------------------
