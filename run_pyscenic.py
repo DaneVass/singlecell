@@ -24,6 +24,7 @@ from pyscenic.rnkdb import FeatherRankingDatabase as RankingDatabase
 from pyscenic.utils import modules_from_adjacencies, load_motifs
 from pyscenic.prune import prune2df, df2regulons
 from pyscenic.aucell import aucell
+from dask.distributed import Client, LocalCluster
 
 import seaborn as sns
 from optparse import OptionParser
@@ -89,7 +90,7 @@ def main():
         pickle.dump(regulons, f)
 
     # The clusters can be leveraged via the dask framework:   
-    df = prune2df(dbs, modules, MOTIF_ANNOTATIONS_FNAME, client_or_address=SCHEDULER)
+    df = prune2df(dbs, modules, MOTIF_ANNOTATIONS_FNAME, client_or_address = client)
 
     df = load_motifs(MOTIFS_FNAME)
     with open(REGULONS_FNAME, "rb") as f:
