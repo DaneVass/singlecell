@@ -66,20 +66,23 @@ def main():
     dbs = [RankingDatabase(fname=fname, name=name(fname)) for fname in db_fnames]
     dbs
 
-    adjacencies = grnboost2(ex_matrix, tf_names=tf_names, verbose=True)
-
+    print("Running Phase I - Calculate cellular adjacencies")
+    cluster = LocalCluster(n_workers = options.threads, threads_per_worker=1, memory_limit=options.memory * 10e9)
+    client = Client(cluster)
+    
+    adjacencies = grnboost2(ex_matrix, tf_names=tf_names, verbose=True, client_or_address = client)
     modules = list(modules_from_adjacencies(adjacencies, ex_matrix))
-
-
+    
     # Phase II: Prune modules for targets with cis regulatory footprints (aka RcisTarget)
-
+    print("Running Phase II - Prune modules for targets with cis regulatory footprints (aka RcisTarget)")
     # Calculate a list of enriched motifs and the corresponding target genes for all modules.
     with ProgressBar():
-        df = prune2df(dbs, modules, MOTIF_ANNOTATIONS_FNAME)
-
+        df = prune2df(dbs, modules, MOTIF_ANNOTATIONS_FNAME, client_or_address = client)
+    
     # Create regulons from this table of enriched motifs.
+    print("Generating regulons from enriched motifs")
     regulons = df2regulons(df)
-
+    
     # Save the enriched motifs and the discovered regulons to disk.
     df.to_csv(MOTIFS_FNAME)
     with open(REGULONS_FNAME, "wb") as f:
@@ -93,8 +96,10 @@ def main():
         regulons = pickle.load(f)
 
     # Phase III: Cellular regulon enrichment matrix (aka AUCell)
-    auc_mtx = aucell(ex_matrix, regulons, num_workers=4)
-    sns.clustermap(auc_mtx, figsize=(8,8))
+    print("Running Phase III - Regulon enrichment using AUCell")
+    auc_mtx = aucell(ex_matrix, regulons, num_workers=options.threads)
+    #sns.clustermap(auc_mtx, figsize=(8,8))
+    auc_mtx.to_csv(options.output)
 
 if __name__ == "__main__":
     main()
