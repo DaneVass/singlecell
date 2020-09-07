@@ -36,8 +36,9 @@ cellSNP -s $BAM -o ${SAMPLENAME}_cellSNP.vcf -R $SNPS -b $CELLS
 # import to filter VCF output and generate a list of cell ID and genotype
 # for import into Seurat objects as sample metadata
 conda activate r-environment
-filter_cellSNP.R -h
-filter_cellSNP.R --infile ${SAMPLENAME}_cellSNP.vcf --outdir -n ${SAMPLENAME} \
+
+~/my_scripts/singlecell/filter_cellSNP.R -h
+~/my_scripts/singlecell/filter_cellSNP.R --infile ${SAMPLENAME}_cellSNP.vcf.gz --outdir . -n ${SAMPLENAME}
 
 echo Ptprc Genotyping complete
 
