@@ -57,7 +57,6 @@ dat <- t(as.data.frame(vcf@gt))
 df <- data.frame(genotype = dat[-1,1:num.snps])
 
 # find rows that 
-not.empty <- which(test.row != ".:.:.:.:.:.")
 for (i in 1:num.snps){
   geno <- paste("genotype", as.character(i), sep = '.')
   df[,geno] <- sapply(strsplit(as.character(df[,geno]),"/"), `[`, 1)
@@ -66,8 +65,13 @@ for (i in 1:num.snps){
 # collapse calls into final annotation
 df$final <- as.character(gsub(".:.:.:.:.:.","",apply(df, 1, paste, collapse="")))
 
-# resolve multi SNP rows
+# print summary of the different alleles detected in cells 
+# most cells should be 0 or 1 or combinations of the same character
+# 0 and 1 combinations reflects REF and ALT alleles detected in the same cell
+message("Table of detected alleles:")
 table(df$final)
+
+# resolve multi SNP rows
 multi.call.rows <- which(nchar(df$final) > 1)
 replace <- lapply(multi.call.rows, function(x){
   call <- ifelse(length(unique(strsplit(df$final[x], "")[[1]])) == 1, strsplit(df$final[x], "")[[1]][1], "Unknown")
@@ -95,7 +99,7 @@ unknown <- which(df$final == "Unknown")
 
 # output parsed data to csv
 out.df <- df[,"final", drop = F]
-write.csv(out.df, outfile)
+write.csv(out.df, outfile, quote = F, row.names = T)
 
 # report final metrics
 message("Filter cellSNP Finished")
@@ -105,8 +109,4 @@ message(paste("Output file:", outfile))
 message(paste("Number of cells with CD45.2 allele:", length(ref)))
 message(paste("Number of cells with CD45.1 allele:", length(alt)))
 message(paste("Number of cells with Unknown allele:", length(unknown)))
-
-
-
-
 
