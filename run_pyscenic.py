@@ -56,11 +56,11 @@ def main():
 
     # import the expression matrix and transpose it to have genes as columns and cells as rows
     ex_matrix = pd.read_csv(SC_EXP_FNAME, sep='\t', header=0, index_col=0).T
-    print(ex_matrix)
+    #print(ex_matrix)
     ex_matrix.shape
 
     tf_names = load_tf_names(TFS_FNAME)
-    print(tf_names)
+    #print(tf_names)
     db_fnames = glob.glob(DATABASES_GLOB)
     def name(fname):
         return os.path.splitext(os.path.basename(fname))[0]
