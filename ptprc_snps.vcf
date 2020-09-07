@@ -1,0 +1,7 @@
+##fileformat=VCFv4.1
+##FILTER=<ID=PASS,Description="All filters passed">
+##fileDate=20200907
+##reference=mm10
+##source=mm10
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER
+1	138080249	rs107785901	A	G	100	PASS
