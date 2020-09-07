@@ -48,32 +48,63 @@ message(paste("Processing:", samplename))
 message(paste("Input file:", basename(infile)))
 message(paste("Output file:", outfile))
 
-
 # Filter cellSNP  output
 vcf <- vcfR::read.vcfR(infile, verbose = T)
+num.snps <- nrow(vcf@fix)
 
 # transpose to have cells as rows and SNPs as cols
 dat <- t(as.data.frame(vcf@gt))
-df <- data.frame(cell = rownames(dat), genotype = dat[,1])
+df <- data.frame(genotype = dat[-1,1:num.snps])
 
-# how many cells do not have genotype assigned
-remove <- c(1,which(df$genotype == ".:.:.:.:.:."))
-df <- df[-remove,,drop = F]
-df$background <- sapply(strsplit(as.character(df$genotype),":"), `[`, 1)
-ref <- which(df$background == "0/0")
-alt <- which(df$background == "1/1")
+# find rows that 
+not.empty <- which(test.row != ".:.:.:.:.:.")
+for (i in 1:num.snps){
+  geno <- paste("genotype", as.character(i), sep = '.')
+  df[,geno] <- sapply(strsplit(as.character(df[,geno]),"/"), `[`, 1)
+}
+
+# collapse calls into final annotation
+df$final <- as.character(gsub(".:.:.:.:.:.","",apply(df, 1, paste, collapse="")))
+
+# resolve multi SNP rows
+table(df$final)
+multi.call.rows <- which(nchar(df$final) > 1)
+replace <- lapply(multi.call.rows, function(x){
+  call <- ifelse(length(unique(strsplit(df$final[x], "")[[1]])) == 1, strsplit(df$final[x], "")[[1]][1], "Unknown")
+  df$final[x] <- call
+})
+
+# if there is only one unique call label it as such else label it as Unknown
+df$final[multi.call.rows] <- unlist(replace)
+
+# rename unknown alleles
+rows <- which(df$final == "")
+df$final[rows] <- "Unknown"
+
+# rename CD45.2 alleles
+rows <- which(df$final == "0")
+df$final[rows] <- "CD45.2"
+
+# rename CD45.1 alleles
+rows <- which(df$final == "1")
+df$final[rows] <- "CD45.1"
+
+ref <- which(df$final == "CD45.2")
+alt <- which(df$final == "CD45.1")
+unknown <- which(df$final == "Unknown")
 
 # output parsed data to csv
-write.csv(df, outfile)
+out.df <- df[,"final", drop = F]
+write.csv(out.df, outfile)
 
 # report final metrics
 message("Filter cellSNP Finished")
 message("-------------------------")
 message(paste("Processing:", samplename))
 message(paste("Output file:", outfile))
-message(paste("Number of cells with REF allele:", length(ref)))
-message(paste("Number of cells with ALT allele:", length(alt)))
-message(paste("Number of cells with NO assigned allele:", length(remove)))
+message(paste("Number of cells with CD45.2 allele:", length(ref)))
+message(paste("Number of cells with CD45.1 allele:", length(alt)))
+message(paste("Number of cells with Unknown allele:", length(unknown)))
 
 
 
