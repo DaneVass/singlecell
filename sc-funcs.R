@@ -245,11 +245,13 @@ runClusterProfiler <- function(dge, lfc.threshold = 0.2, padj.threshold = 0.1, O
                      readable = TRUE)
   head(ego.dn, 20)
 
-  print(barplot(ego.up, showCategory=15) + ggtitle(paste("Upregulated", category, "GO terms in", sample)))
-  print(barplot(ego.dn, showCategory=15) + ggtitle(paste("Downregulated", category, "GO terms in", sample)))
+  bp.up <- barplot(ego.up, showCategory=15) + ggtitle(paste("Upregulated", category, "GO terms in", sample))
+  bp.dn <- barplot(ego.dn, showCategory=15) + ggtitle(paste("Downregulated", category, "GO terms in", sample))
 
-  print(clusterProfiler::emapplot(ego.up, showCategory=15) + ggtitle(paste("Upregulated", category, "GO terms in", sample)))
-  print(clusterProfiler::emapplot(ego.dn, showCategory=15)+ ggtitle(paste("Downregulated", category, "GO terms in", sample)))
+  emap.up <- clusterProfiler::emapplot(ego.up, showCategory=15) + ggtitle(paste("Upregulated", category, "GO terms in", sample))
+  emap.dn <- clusterProfiler::emapplot(ego.dn, showCategory=15)+ ggtitle(paste("Downregulated", category, "GO terms in", sample))
+
+  out.list <- list(bp.up, bp.dn, emap.up, emap.dn)
 
   #ego3 <- gseGO(geneList = gene.df.up,
   #              OrgDb = OrgDb,
@@ -272,6 +274,7 @@ runClusterProfiler <- function(dge, lfc.threshold = 0.2, padj.threshold = 0.1, O
     print(clusterProfiler::emapplot(ego.dn, showCategory=15)+ ggtitle(paste("Downregulated", category, "GO terms in", sample)))
     dev.off()
   }
+  return(out.list)
 }
 
 findDoubletsBySimulation <- function(obj, ntop = 1000, mads = 3, seed = 10101){
@@ -531,4 +534,78 @@ plotCellsInClusters <- function(obj, meta = 'barcode', group, plot.pct = T){
       ggtitle(paste("Number of cells in clusters:", group))
   }
   return(p)
+}
+
+# output single cell counts matrix from Seurat or SCE object for use with other programs eg. SCENIC etc.
+writeSingleCellMatrix <- function(obj, outfile, sep = "\t", transpose = FALSE){
+  if(class(obj) == "Seurat"){
+    obj.counts <- as.matrix(obj@assays$RNA@counts)
+  }
+  if(class(obj) == "SingleCellExperiment"){
+    obj.counts <- counts(obj)
+  }
+
+  if(isTRUE(transpose)){
+    obj.counts <- t(obj.counts)
+  }
+
+  write.matrix(obj.counts, file = outfile, sep = sep)
+}
+
+# automate SingleR analysis for object
+runSingleR <- function(obj, db = "immgen", col.name = "singleR.predictions", assay = "SCT", heatmap = F){
+  suppressPackageStartupMessages(require(SingleR))
+  suppressPackageStartupMessages(require(scater))
+
+  # load singleR database
+  message("loading database")
+  if (db == "immgen"){
+    immgen <- ImmGenData(ensembl = FALSE)
+    ref = immgen
+  }
+  if (db == "monaco"){
+    monaco.immune <- MonacoImmuneData()
+    ref = monaco.immune
+  }
+  if (db == "mouserna"){
+    mouse.rna <- MouseRNAseqData(ensembl = FALSE)
+    ref = mouse.rna
+  }
+
+  # detect input object and if needed convert Seurat obj to SCE
+  if (class(obj) == "Seurat") {
+    message("Seurat object detected. Converting to SingleCellExperiment")
+    if ("SCT" %in% Assays(obj)){
+      message("converting SCT assay")
+      obj.sce <- as.SingleCellExperiment(obj, assay = "SCT")
+    } else {
+      message("No SCT assay detected. Converting RNA assay")
+      obj.sce <- as.SingleCellExperiment(obj, assay = "RNA")
+    }
+    obj.sce
+  } else {
+    if(class(obj) != "SingleCellExperiment"){
+      stop("Input object must be of class Seurat or SingleCellExperiment")
+    }
+  }
+
+  # predict cell id
+  message("Generating predictions")
+  pred.sample <- SingleR(test = obj.sce, ref = ref, labels = ref$label.main)
+  #pred.sample.fine <- SingleR(test = obj.sce, ref = ref, labels = ref$label.fine)
+
+  # plot heatmap (optional)
+  message("Plotting Heatmaps")
+  if (isTRUE(heatmap)){
+    plotScoreHeatmap(pred.sample)
+    #plotScoreHeatmap(pred.sample.fine)
+  }
+
+  # merge predictions into original Seurat obj
+  message("Merging annotations")
+  pred <- as.data.frame(pred.sample)
+  obj <- AddMetaData(obj, pred[,"pruned.labels", drop = F], col.name = col.name)
+  #pred.fine <- as.data.frame(pred.sample.fine)
+  #obj <- AddMetaData(obj, pred[,"pruned.labels", drop = F], col.name = paste(col.name, "fine", sep = "_"))
+  return(obj)
 }
